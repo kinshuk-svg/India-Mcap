@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>India Total Market Cap</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --muted:#666; --line:#1f5fbf; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111; --fg:#eee; --muted:#999; --line:#5b9bff; } }
+  body { margin:0; padding:24px; background:var(--bg); color:var(--fg); font-family:system-ui,sans-serif; }
+  .wrap { max-width:1000px; margin:0 auto; }
+  h1 { font-size:1.3rem; margin:0 0 4px; }
+  p.one { margin:0 0 16px; color:var(--muted); font-size:.95rem; }
+  .bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:.9rem; }
+  .box { position:relative; height:60vh; min-height:320px; }
+  .disc { margin-top:14px; font-size:.78rem; color:var(--muted); line-height:1.4; }
+  label { cursor:pointer; user-select:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Total Market Capitalization of the Indian Stock Market (NSE)</h1>
+  <p class="one">Daily sum of closing price × shares outstanding for all Nifty Total Market constituents, in ₹ lakh crore.</p>
+  <div class="bar">
+    <label><input type="checkbox" id="full"> Estimate 100% of market (index covers ~96.5%)</label>
+    <span id="latest"></span>
+  </div>
+  <div class="box"><canvas id="c"></canvas></div>
+  <p class="disc">Disclaimer: all calculations use the index constituents and share counts as of October 2026. They do not account for stocks added, removed, listed or delisted in the past, so earlier values are approximate.</p>
+</div>
+<script>
+const COVERAGE = 0.965;
+fetch("data.json").then(r => r.json()).then(d => {
+  const cs = getComputedStyle(document.documentElement);
+  const chart = new Chart(document.getElementById("c"), {
+    type: "line",
+    data: { labels: d.dates, datasets: [{ data: d.mcap, borderColor: cs.getPropertyValue("--line"),
+            borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: c => "₹" + c.parsed.y.toFixed(1) + " lakh crore" } } },
+      scales: { x: { ticks: { maxTicksLimit: 8, maxRotation: 0 }, grid: { display: false } },
+                y: { title: { display: true, text: "₹ lakh crore" } } } }
+  });
+  const latest = document.getElementById("latest");
+  function draw() {
+    const k = document.getElementById("full").checked ? 1 / COVERAGE : 1;
+    chart.data.datasets[0].data = d.mcap.map(v => +(v * k).toFixed(2));
+    chart.update();
+    latest.textContent = "Latest (" + d.dates.at(-1) + "): ₹" + (d.mcap.at(-1) * k).toFixed(1) + " lakh crore";
+  }
+  document.getElementById("full").addEventListener("change", draw);
+  draw();
+});
+</script>
+</body>
+</html>
